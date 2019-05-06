@@ -1,0 +1,169 @@
+#Hello Zigc, thank to your videos i have managed to create a usable app for my small restaurant.
+# I was wondering if you knew how to add Widget to an existing .ui.
+
+# For example I want to add PButtons to a group box, based on another table which contains the platillos (users in your videos)
+# but i dont know how to add a widget to an existing groupbox neither add a widget to a exting window created with designer.
+# Could you helpme?
+
+
+from PyQt5 import QtWidgets, uic
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import Qt
+
+from SqliteHelperCaja import *
+from SqliteHelper import *
+import datetime
+
+app = QtWidgets.QApplication([])
+dlg2 = uic.loadUi("caja.ui")
+
+helper = SqliteHelperCaja("tickets.db")
+helper2 = SqliteHelper("test.db")
+a = datetime.datetime.now()
+
+Folio_Numero = 0
+
+def numero_de_folio():
+    corte = dlg2.lineEdit_4.text()
+    if corte == "ERROR!" or corte == "":
+        show_message("Error!","No tiene seleccionado el numero de corte.")
+    else:
+        global Folio_Numero
+        Folio =  str(a.year)+str(a.month)+str(a.day)+str(corte)+str(Folio_Numero)
+        Folio_Numero = Folio_Numero + 1
+        dlg2.lineEdit_2.setText(Folio)
+    refresh()
+    dlg2.lineEdit.setText("")
+    
+        
+def numero_de_corte():
+    Corte = "Prueba"
+    Resto = dlg2.checkBoxResto.isChecked()
+    Corte1 = dlg2.checkBox1.isChecked()
+    Corte2 = dlg2.checkBox2.isChecked()
+    Corte3 = dlg2.checkBox3.isChecked()
+    Corte4 = dlg2.checkBox4.isChecked()
+    Corte5 = dlg2.checkBox5.isChecked()
+    CualCorte = dlg2.lineEdit_3.text()
+    
+    if Resto:
+        Corte = 0
+        dlg2.lineEdit_4.setText("0")
+    elif Corte1:
+        Corte = 1
+        dlg2.lineEdit_4.setText("1")
+    elif Corte2:
+        Corte = 2
+        dlg2.lineEdit_4.setText("2")
+    elif Corte3:
+        Corte = 3
+        dlg2.lineEdit_4.setText("3")
+    elif Corte4:
+        Corte = 4
+        dlg2.lineEdit_4.setText("4")
+    elif Corte5:
+        Corte = 5
+        dlg2.lineEdit_4.setText("5")
+    elif CualCorte != "":
+        Corte = str(dlg2.lineEdit_3.text())
+        dlg2.lineEdit_4.setText(str(dlg2.lineEdit_3.text()))
+    else:
+        show_message("Error!","Seleccione la casilla del corte correspondiente, o ingrese numero de corte.")
+        dlg2.lineEdit_4.setText("ERROR!")
+    
+    
+def show_message(title="Test",message="Test"):
+        QMessageBox.information(None, title, message)       
+  
+
+def loadData():
+    Folio = dlg2.lineEdit_2.text()
+    if Folio == "":
+        pass
+    else:
+        tickets = helper.select("SELECT Folio,Producto,Precio,Cantidad,Total,Date,Time FROM tickets WHERE Folio ="+Folio)
+        for row_number,articulo in enumerate(tickets):
+            dlg2.tableWidget.insertRow(row_number)
+            for column_number,data in enumerate(articulo):
+                cell = QtWidgets.QTableWidgetItem(str(data))
+                dlg2.tableWidget.setItem(row_number,column_number,cell)
+    #numero_de_folio()
+    #print(numero_de_corte)
+
+def clearData():
+    dlg2.tableWidget.clearSelection()
+    while(dlg2.tableWidget.rowCount()>0):
+        dlg2.tableWidget.removeRow(0)
+        dlg2.tableWidget.clearSelection()
+
+def Agregar_Botones():
+    Numero_de_Botones = helper2.select("SELECT count(*) FROM platillos")
+    Nombre_de_Botones = helper2.select("SELECT name FROM platillos")
+    a = [0,0,1]
+    #GB = dlg2.groupBox
+    addWidget(QPushButton())
+    #btn = dlg2.QGui.QPushButton("Prueba")
+    for x in Nombre_de_Botones:
+        print(x)
+        #dlg2.QPushButton("Prueba")
+        
+    #print(Nombre_de_Botones)
+    #print(Numero_de_Botones[0][0])
+    
+
+def addTostada():
+    Folio = dlg2.lineEdit_2.text()
+    if Folio == "":
+        show_message("Error!","No tiene asignado el numero de ticket.")
+    else:
+        Producto = (helper2.select("SELECT * FROM platillos WHERE name = 'Tostada'")[0][1])
+        Precio = str(helper2.select("SELECT * FROM platillos WHERE name = 'Tostada'")[0][2])
+        Cantidad = dlg2.lineEdit.text()
+        if Cantidad == "":
+            Cantidad = 1
+        Total = float(Precio)*float(Cantidad)
+        Date = datetime.date.today()
+        Time = datetime.datetime.now().strftime("%H:%M")
+        Detalle = (Folio,Producto,Precio,Cantidad,Total,Date,Time)
+        helper.insert("INSERT INTO tickets (Folio,Producto,Precio,Cantidad,Total,Date,Time) VALUES(?,?,?,?,?,?,?)",Detalle)
+        refresh()
+        dlg2.lineEdit.setText("")
+    
+    #print(Producto)
+    #print(Precio)
+    #print(Total)
+    #print(Date)
+    #print(Time)
+    #print(Folio)
+    #print(Detalle)
+    
+def load_platillos():
+    platillos = helper2.select("SELECT * FROM platillos")
+    dlg.show()
+    app.exec()
+
+def Total():
+    Folio = dlg2.lineEdit_2.text()
+    if Folio == "":
+        show_message("Error!","No tiene asignado el numero de ticket.")
+    else:
+        Total = helper.select("SELECT SUM(Total) FROM tickets WHERE Folio ="+Folio)
+        Total_Numero = str(Total[0][0])
+        dlg2.lineEdit_5.setText(Total_Numero)
+
+def refresh():
+    clearData()
+    loadData()
+
+def open_caja():
+    loadData()
+    #Agregar_Botones()
+    dlg2.show()
+    app.exec()
+
+dlg2.PBTostada.clicked.connect(addTostada)
+dlg2.PBCorte.clicked.connect(numero_de_corte)
+dlg2.PBNuevoTicket.clicked.connect(numero_de_folio)
+dlg2.PBTotal.clicked.connect(Total)
+dlg2.PBBotones.clicked.connect(Agregar_Botones)
+
